@@ -82,7 +82,7 @@ h1 {
                 maxZoom: 20
             }).addTo(map);
 
-        skiareas = L.geoJson.ajax("/assets/data.geojson", {
+        skiareas = L.geoJson.ajax("assets/data.geojson", {
                 attribution: 'Data: NC Ski Area Websites',
                 pointToLayer: function (feature, latlng) {
                     // Assign the circle marker to a variable
