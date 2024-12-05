@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>NC Ski Areas</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style>
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+}
+
+h1 {
+    position: absolute;
+    left: 50px;
+    top: 10px;
+    padding: 8px 2%;
+    margin: 0;
+    background: rgba(75,101,124,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    color: whitesmoke;
+    font-size: 1.5em;
+    z-index: 800;
+}
+
+#map{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 960px;
+    height: 540px;
+}
+
+
+.custom-popup .leaflet-popup-content-wrapper {
+    background: whitesmoke; /* Match map legend's background */
+    padding: 5px; 
+    border: 2px solid #4B657C; /* Border matches circle style */
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Add drop shadow */
+    
+}
+
+
+.custom-popup a {
+    color: #4B657C; /* Link matches circle styling */
+    text-decoration: none;
+}
+.custom-popup a:hover {
+    text-decoration: underline; /* Subtle hover effect */
+}
+
+.custom-popup .leaflet-popup-content {
+    
+    font-size: 14px; /* Adjust font size */
+    color: #4B657C; /* Match your circle colors */
+}
+
+
+</style>
+    </head>
+
+<body>
+    <div id='map'></div>
+    <h1>North Carolina Ski Areas</h1>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-ajax/2.1.0/leaflet.ajax.min.js" integrity="sha512-Abr21JO2YqcJ03XGZRPuZSWKBhJpUAR6+2wH5zBeO4wAw4oksr8PRdF+BKIRsxvCdq+Mv4670rZ+dLnIyabbGw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <script>
+        var map = L.map('map', {
+            center: [35.82805886039275, -82.55505437916452],
+            zoom: 9
+        });
+
+        var CartoDB_Positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                maxZoom: 20
+            }).addTo(map);
+
+        skiareas = L.geoJson.ajax("/assets/data.geojson", {
+                attribution: 'Data: NC Ski Area Websites',
+                pointToLayer: function (feature, latlng) {
+                    // Assign the circle marker to a variable
+                    var circle = L.circleMarker(latlng, {
+                        color: "#4B657C",
+                        opacity: 1,
+                        weight: 2,
+                        fillColor: "#4B657C",
+                        fillOpacity: 0.8,
+                        radius: calcRadius(feature.properties.PASS)
+            });
+
+            
+
+        circle.bindPopup(`
+            <div style="text-align: center;">
+                <strong>${feature.properties.NAME}</strong><br>
+                '24-'25 Pass Price: $${feature.properties.PASS}<br>
+                Adult Day Pass Price: $${feature.properties.ADULT}<br>
+                <a href="${feature.properties.WEBSITE}" target="_blank" rel="noopener noreferrer">Website</a>
+            </div>`, 
+            {
+                className: "custom-popup", // Applies the custom styles
+                maxWidth: 250, // Optional: limits popup width
+                autoPan: true // Ensures popup fits within the viewport
+            });
+
+
+        // Add mouseover and mouseout event listeners
+        circle.on({
+            mouseover: function () {
+                this.setStyle({ color: 'teal', fillColor: 'teal' });
+                this.openPopup(); // Show tooltip
+            },
+            mouseout: function () {
+                
+                this.setStyle({ color: "#4B657C", fillColor: "#4B657C" });
+            
+            }
+        });
+
+        // Return the marker
+        return circle;
+            }
+        });
+
+        var minValue = 615;
+        var minRadius = 20;
+
+        function calcRadius(val) {
+            return 1*Math.pow(val/minValue,.9) * minRadius;
+            }
+
+            
+        skiareas.addTo(map);
+
+        // Create a custom legend control
+        var legend = L.control({ position: 'bottomleft' });
+
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'legend');
+            var grades = [600, 1000]; // Hypothetical values for the legend
+            var labels = [];
+            var minValue = 615; // Same minimum value as calcRadius
+            var minRadius = 20; // Same minimum radius as calcRadius
+
+        // Title for the legend with styling similar to <h1>
+        div.innerHTML += '<h4 style="margin: 0.5; color: #4B657C; font-size: 1.5em; border-radius: 5px;">Season Pass Pricing</h4>';
+
+        grades.forEach(function (grade) {
+            // Use the same calcRadius formula
+            var radius = Math.pow(grade / minValue, 0.9) * minRadius;
+
+        // Create the circle with the label to the right, centered at the bottom middle
+        labels.push(
+            `<div style="display: flex; align-items: center; margin-bottom: 10px; text-align: left;">
+                <i style="width:${radius * 2}px; height:${radius * 2}px;  opacity: 0.8; background: #4B657C; border: 2px solid #4B657C; border-radius: 50%; display: inline-block; margin-right: 10px; position: relative; bottom: 4px;"></i>
+                <span style="font-size: 1.2em; color: #4B657C;">$${grade}</span>
+            </div>`
+            );
+        });
+
+        // Add the generated labels to the legend container
+        div.innerHTML += labels.join('');
+
+        // Apply the new container styling with the desired background, font color, border, and shadow
+        div.style.backgroundColor = '#f5f5f5';  // White smoke background
+        div.style.color = '#4B657C';  // Font color matching the background
+        div.style.padding = '10px';  // Add some padding around the content
+        div.style.border = '2px solid #4B657C';  // Border color to match background color
+        div.style.boxShadow = '2px 2px 8px rgba(0, 0, 0, 0.3)';  // Small black drop shadow
+        div.style.borderRadius = '10px';  // Rounded corners for a smoother look
+        div.style.fontSize = '1.1em';  // Slightly larger font size for better readability
+
+        return div;
+        };
+
+        // Add the legend to the map
+        legend.addTo(map);
+
+    </script>
+</body>
+
+</html>
